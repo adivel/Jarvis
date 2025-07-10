@@ -1,4 +1,4 @@
-# Simple Terminal
+# Jarvis the intelligent Terminal
 
 A lightweight, cross-platform terminal emulator written in Go that provides basic shell functionality with built-in commands and external program execution.
 
