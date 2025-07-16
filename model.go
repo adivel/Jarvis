@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"fmt"
+	"fmt"  //Math package 
 	"os"
 	"os/exec"
 	"path/filepath"

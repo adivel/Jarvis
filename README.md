@@ -11,7 +11,6 @@ A lightweight, cross-platform terminal emulator written in Go that provides basi
 - **Clean Interface**: Minimal, user-friendly prompt and output
 
 ## Prerequisites
-
 - Go 1.16 or higher installed on your system
 - Terminal/Command Prompt access
 
