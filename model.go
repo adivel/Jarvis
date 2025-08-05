@@ -1,205 +1,61 @@
 package main
 
-import (
-	"bufio"
-	"fmt"  //Math package 
+import {
+	"errors" //To  inspect error types 
+	"fmt"
+	"io"
+	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"strings"
-	"syscall"
-)
-
-type Terminal struct {
-	currentDir string
-	history    []string
+	"runtime" // To detect the operating system
 }
 
-func NewTerminal() *Terminal {
-	wd, _ := os.Getwd()
-	return &Terminal{
-		currentDir: wd,
-		history:    make([]string, 0),
-	}
-}
+//main is the entry  point of our application
+for main() {
+	fmt.Println("---- Terminal Starter: Step 1 ----")
 
-func (t *Terminal) Run() {
-	fmt.Println("🚀 Starting Simple Terminal v1.0...")
-	fmt.Println("✅ Terminal initialized successfully!")
-	fmt.Println("📁 Current directory:", t.currentDir)
-	fmt.Println("💡 Type 'help' for available commands, 'exit' to quit")
-	fmt.Println(strings.Repeat("-", 50))
-	
-	scanner := bufio.NewScanner(os.Stdin)
-	
-	for {
-		// Display prompt
-		fmt.Printf("%s $ ", t.getPrompt())
+	// Defining the command to run
+	var command string
+	var args []string
+
+	//check the operating system to run a common  command
+	if runtime.GOOS == "windows" {
+		command = "cmd"
 		
-		if !scanner.Scan() {
-			break
-		}
-		
-		input := strings.TrimSpace(scanner.Text())
-		if input == "" {
-			continue
-		}
-		
-		// Add to history
-		t.history = append(t.history, input)
-		
-		// Parse and execute command
-		if !t.executeCommand(input) {
-			break
-		}
-	}
-	
-	fmt.Println("\nGoodbye!")
-}
-
-func (t *Terminal) getPrompt() string {
-	// Show just the directory name, not full path
-	return filepath.Base(t.currentDir)
-}
-
-func (t *Terminal) executeCommand(input string) bool {
-	args := strings.Fields(input)
-	if len(args) == 0 {
-		return true
-	}
-	
-	command := args[0]
-	
-	// Handle built-in commands
-	switch command {
-	case "exit", "quit":
-		return false
-	case "help":
-		t.showHelp()
-	case "pwd":
-		fmt.Println(t.currentDir)
-	case "cd":
-		t.changeDirectory(args[1:])
-	case "ls":
-		t.listFiles(args[1:])
-	case "clear":
-		t.clearScreen()
-	case "history":
-		t.showHistory()
-	case "echo":
-		if len(args) > 1 {
-			fmt.Println(strings.Join(args[1:], " "))
-		}
-	default:
-		// Try to execute as external command
-		t.executeExternal(args)
-	}
-	
-	return true
-}
-
-func (t *Terminal) showHelp() {
-	fmt.Println("Built-in commands:")
-	fmt.Println("  help     - Show this help message")
-	fmt.Println("  exit     - Exit the terminal")
-	fmt.Println("  pwd      - Print working directory")
-	fmt.Println("  cd <dir> - Change directory")
-	fmt.Println("  ls       - List files in current directory")
-	fmt.Println("  clear    - Clear the screen")
-	fmt.Println("  history  - Show command history")
-	fmt.Println("  echo     - Echo text")
-	fmt.Println("\nYou can also run any system command available in your PATH.")
-}
-
-func (t *Terminal) changeDirectory(args []string) {
-	var newDir string
-	
-	if len(args) == 0 {
-		// No arguments, go to home directory
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Printf("Error getting home directory: %v\n", err)
-			return
-		}
-		newDir = homeDir
+		args = []string{"/C", "dir"}
 	} else {
-		newDir = args[0]
-		
-		// Handle relative paths
-		if !filepath.IsAbs(newDir) {
-			newDir = filepath.Join(t.currentDir, newDir)
-		}
+		command = "ls"
+		args = []string{"-l", "-a"} //"-l" for long format, "-a" for all files
 	}
-	
-	// Clean the path
-	newDir = filepath.Clean(newDir)
-	
-	// Check if directory exists
-	if info, err := os.Stat(newDir); err != nil {
-		fmt.Printf("cd: %s: No such file or directory\n", newDir)
-		return
-	} else if !info.IsDir() {
-		fmt.Printf("cd: %s: Not a directory\n", newDir)
-		return
-	}
-	
-	t.currentDir = newDir
-}
 
-func (t *Terminal) listFiles(args []string) {
-	dir := t.currentDir
-	if len(args) > 0 {
-		dir = args[0]
-		if !filepath.IsAbs(dir) {
-			dir = filepath.Join(t.currentDir, dir)
-		}
-	}
-	
-	files, err := os.ReadDir(dir)
+	fmt.Printf("Running command: %s %v\n\n, command, arg")
+
+	//Execute the command with our helper function
+	err := runCommand(os.Stdout, os.Stderr, command, args...)
 	if err != nil {
-		fmt.Printf("ls: %v\n", err)
-		return
+		log.Fatalf("Error running command: %v", err)
 	}
-	
-	for _, file := range files {
-		if file.IsDir() {
-			fmt.Printf("%s/\n", file.Name())
-		} else {
-			fmt.Printf("%s\n", file.Name())
-		}
-	}
+
+	fmt.Println("\n--- Command execute successfully ---")
 }
 
-func (t *Terminal) clearScreen() {
-	// ANSI escape sequence to clear screen
-	fmt.Print("\033[H\033[2J")
-}
+func runCommand(stdout, stderr io.Writer, command string, args ...string)
+error {
+	// Step 1:  Create the exec.Cmd struct.
+	cmd := exec.Command(command, args...)
 
-func (t *Terminal) showHistory() {
-	for i, cmd := range t.history {
-		fmt.Printf("%d: %s\n", i+1, cmd)
-	}
-}
+	// Step 2: Connect the command's standard streams. 
+	// We connect them to the writers passed into our function
+	// This gives the caller control  over where the output goes.
 
-func (t *Terminal) executeExternal(args []string) {
-	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Dir = t.currentDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+
+	// Step 3: Run the command and wait for it to complete.
+	// Run() starts the specified command ad waits for its to complete.
+
 	err := cmd.Run()
 	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
-				os.Exit(status.ExitStatus())
-			}
-		}
-		fmt.Printf("Error executing command: %v\n", err)
+		//checking for specific  
 	}
-}
-
-func main() {
-	terminal := NewTerminal()
-	terminal.Run()
 }
