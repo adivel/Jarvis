@@ -1,4 +1,4 @@
-module jarvis
+module lofi-terminal
 
 go 1.23
 
@@ -34,4 +34,4 @@ require (
 	golang.org/x/text v0.22.0 // indirect
 )
 
-// replace github.com/wailsapp/wails/v2 v2.10.2 => C:\Users\adiya\go\pkg\mod
+// replace github.com/wailsapp/wails/v2 v2.10.2 => C:\Users\Windows 10\go\pkg\mod
